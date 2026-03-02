@@ -1,5 +1,151 @@
-<image-slider></image-slider>
+<div class="w-full flex flex-col gap-6" id="image-slider">
+  <!-- Slider Container -->
+  <div class="relative">
+    <!-- Previous Button -->
+    <button
+      type="button"
+      id="prev-btn"
+      class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 md:-translate-x-6
+             rounded-full border border-neutral-300 dark:border-neutral-700
+             bg-white/90 dark:bg-neutral-900/90 backdrop-blur
+             px-3 py-2 shadow z-10"
+      aria-label="Previous slide"
+    >
+      ‹
+    </button>
+
+    <!-- Slider Viewport -->
+    <div class="overflow-hidden rounded-2xl">
+      <div
+        id="slides-container"
+        class="flex transition-transform duration-500 ease-in-out"
+      >
+      </div>
+    </div>
+
+    <!-- Next Button -->
+    <button
+      type="button"
+      id="next-btn"
+      class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 md:translate-x-6
+             rounded-full border border-neutral-300 dark:border-neutral-700
+             bg-white/90 dark:bg-neutral-900/90 backdrop-blur
+             px-3 py-2 shadow z-10"
+      aria-label="Next slide"
+    >
+      ›
+    </button>
+  </div>
+
+  <!-- Counter -->
+  <div id="counter" class="text-center text-sm text-neutral-600 dark:text-neutral-300">
+    1 of 1
+  </div>
+
+  <!-- Add Image Form -->
+  <form id="add-image-form" class="flex gap-2 mt-4">
+    <input
+      id="image-url-input"
+      class="flex-1 rounded-xl border border-neutral-300 dark:border-neutral-700
+             bg-white dark:bg-neutral-900
+             px-4 py-3 outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+      type="url"
+      placeholder="Paste image URL and press Enter…"
+    />
+    <button
+      type="submit"
+      class="rounded-xl border border-neutral-300 dark:border-neutral-700
+             bg-neutral-900 text-white dark:bg-white dark:text-neutral-900
+             px-6 py-3 hover:opacity-90 transition-opacity"
+    >
+      Add
+    </button>
+  </form>
+</div>
 
 <script>
-  import "./image-slider.ts";
+  import {
+    ImageSliderState,
+    updatePerView,
+    handleResize,
+    navigatePrevious,
+    navigateNext,
+    updateInputValue,
+    addImage,
+    groupImagesIntoSlides,
+  } from "./image-slider.ts";
+
+  // Initialize state
+  const state = new ImageSliderState();
+
+  // Get DOM elements
+  const slidesContainer = document.getElementById("slides-container")!;
+  const counter = document.getElementById("counter")!;
+  const prevBtn = document.getElementById("prev-btn")!;
+  const nextBtn = document.getElementById("next-btn")!;
+  const form = document.getElementById("add-image-form") as HTMLFormElement;
+  const input = document.getElementById("image-url-input") as HTMLInputElement;
+
+  // Render functions
+  function renderSlides(): void {
+    const slides = groupImagesIntoSlides(state.images, state.perView);
+    
+    slidesContainer.innerHTML = slides
+      .map(
+        (group) => `
+        <div class="flex-none w-full">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${group
+              .map(
+                (src) => `
+              <div class="w-full aspect-[2/1] rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
+                <img
+                  class="w-full h-full object-contain"
+                  src="${src}"
+                  alt="Slide image"
+                  loading="lazy"
+                />
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      `
+      )
+      .join("");
+  }
+
+  function updateUI(): void {
+    renderSlides();
+    slidesContainer.style.transform = state.translateX;
+    counter.textContent = `${state.currentSlide} of ${state.totalSlides}`;
+    input.value = state.inputValue;
+  }
+
+  // Event handlers
+  prevBtn.addEventListener("click", () => {
+    navigatePrevious(state, updateUI);
+  });
+
+  nextBtn.addEventListener("click", () => {
+    navigateNext(state, updateUI);
+  });
+
+  input.addEventListener("input", (e) => {
+    updateInputValue(state, (e.target as HTMLInputElement).value);
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    addImage(state, input.value, updateUI);
+  });
+
+  window.addEventListener("resize", () => {
+    handleResize(state, updateUI);
+  }, { passive: true });
+
+  // Initialize
+  updatePerView(state);
+  updateUI();
 </script>
